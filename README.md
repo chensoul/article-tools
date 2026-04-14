@@ -14,6 +14,11 @@
 
 直接用浏览器打开对应 HTML 文件即可，无需安装任何依赖。
 
+## 参考
+
+- https://github.com/eternityspring/article-tools
+- https://github.com/alchaincyf/huasheng_editor
+
 ## License
 
 [MIT](LICENSE)
