@@ -6,18 +6,17 @@
 
 ### 核心与部署
 
-- **本地 / 离线可用**：脚本与资源改为仓库内相对路径；引入 `vendor/`（如 `html-to-image.min.js`、`jsQR.js`、`qrcode.min.js` 等）与 `fonts/`，减少对外部 CDN 的依赖，便于本地打开与 GitHub Pages 部署。
-- **内容与版权**：移除首页与 README 中的「请我喝咖啡」区块及支付宝 / 微信收款码图片；`LICENSE` 版权行更新为当前维护者。
-- **`README.md`**：表述为本地可用工具集，更新在线预览地址与工具列表（与当前页面能力一致）。
+- **脚本与字体（jsDelivr）**：封面、首页、二维码等页面的第三方脚本与 Web 字体改为通过 **jsDelivr** 加载（如 `html-to-image`、`misans` 分包样式、`@fontsource/noto-serif-sc`、`@fontsource/jetbrains-mono`；二维码页为 `qrcodejs`、`jsqr`）。不再在仓库内保留 `cover/fonts/`、`cover/vendor/` 副本，以减小体积并统一版本；**完全离线打开**需自行改回本地资源或使用私有镜像。
+- **`README.md`**：工具路径与能力说明与当前页面一致（含 `cover/index.html`、`editor/index.html`、`qrcode/index.html`）。
 
-### 封面生成器（`cover.html`）
+### 封面生成器（`cover/index.html`）
 
 #### 新增
 
 - 右栏 **配色**：纯色与渐变色按钮按列对齐（网格布局）；新增 **午夜** 纯色（scheme 13）与渐变色列对应。
 - **装饰**：**极简净底**（`clean`）等装饰选项（在既有极简几何 / 赛博 / 球体 / 简约风基础上迭代）。
 - **本地保存**：使用 `localStorage`（`article-tools-cover-v1`）防抖保存封面参数，顶栏提示「已存本地」；重置时清除存储。
-- **字体**：右栏 **字体 Font** 下拉可选：**思源宋体 Noto Serif**、**小米 MiSans**、**JetBrains Mono**、**系统黑体**；预设可带字体并在应用预设时切换。
+- **字体**：右栏 **字体 Font** 下拉可选：**思源宋体 Noto Serif**、**小米 MiSans**、**JetBrains Mono**、**系统黑体**；预设可带字体并在应用预设时切换。Noto / JetBrains 使用 `@fontsource` woff2；MiSans 使用 `misans` 包分包 CSS（`font-family: MiSans`，字重 330 等与分包一致）。
 
 #### 变更
 
@@ -25,50 +24,6 @@
 - **作者**：默认字号 **1.9 cqi**；各比例预设中的作者字号与之一致调整。
 - **可见性**：字段旁按钮文案改为「隐藏 / 显示」，与当前是否显示一致。
 - **复制图片**：失败时提示中补充 HTTPS / localhost 与剪贴板权限说明。
-
-#### 移除
-
-- 配色 **「小绿书」** 及相关 `scheme-light` 样式与 UI。
-- 顶栏 **「Copy 配置」** 及对应 JSON 导出与剪贴板辅助逻辑。
-- 曾短暂加入的装饰（如胶片 / 光影类）已按需求去掉，不保留在正式选项中。
-
-#### 修复 / 清理
-
-- 去掉已无用的 `scheme-light` 残留逻辑。
-- 标题字重与 **Noto Serif SC Black** 配套；随仓库保留的字体文件与 `fonts/NOTICE.txt` 说明一致。
-
-### 二维码工具（`qrcode.html`）
-
-- 增加 **JetBrains Mono** 的 `@font-face`，单独打开页面时也可使用仓库内等宽字体（与封面共用 `fonts/JetBrainsMono-Regular.ttf`）。
-
-### 首页（`index.html`）
-
-- 工具卡片文案与当前能力对齐（去掉已下线功能的表述）；与本地化资源、标题等调整一致。
-
-### 文档
-
-- **`fonts/NOTICE.txt`**：随内置字体与可选「系统黑体」更新许可与说明。
-- **`vendor/NOTICE.txt`**：第三方脚本许可说明。
-
----
-
-## 2026-04-13
-
-### 首页（`index.html`）
-
-- 增加 **Support** 区块与 **GitHub Star** 展示。
-- Star 数量展示修复；在无法直接读取时使用 **GitHub API** 作为回退。
-- 后续迭代中更新 Star 按钮的嵌入方式。
-
----
-
-## 2026-04-12
-
-### 仓库初始化
-
-- 首次提交：**Article Tools**，MIT 许可。
-- 增加 **`.gitignore`**，移除误提交的 **`.DS_Store`**。
-- **`README.md`**：补充在线预览链接。
 
 ---
 

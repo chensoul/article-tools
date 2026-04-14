@@ -1,343 +1,377 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="favicon.ico" sizes="any">
-  <title>陈书的工具箱</title>
-  <style>
-    @font-face {
-      font-family: 'Noto Serif SC';
-      src: url('cover/fonts/NotoSerifSC-Regular.otf') format('opentype');
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'Noto Serif SC';
-      src: url('cover/fonts/NotoSerifSC-Bold.otf') format('opentype');
-      font-weight: 700;
-      font-style: normal;
-      font-display: swap;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <title>陈书的工具箱</title>
+    <style>
+        /* jsDelivr @fontsource — Noto Serif SC */
+        @font-face {
+            font-family: 'Noto Serif SC';
+            src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.0.12/files/noto-serif-sc-chinese-simplified-400-normal.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+        @font-face {
+            font-family: 'Noto Serif SC';
+            src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.0.12/files/noto-serif-sc-chinese-simplified-700-normal.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
 
-    body {
-      min-height: 100vh;
-      background: #f5f6f8;
-      font-family: 'Noto Serif SC', serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* ── Header ── */
-    header {
-      width: 100%;
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
-      padding: 0 32px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
+        body {
+            min-height: 100vh;
+            background: #f5f6f8;
+            font-family: 'Noto Serif SC', serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    .logo {
-      font-size: 15px;
-      font-weight: 700;
-      color: #111;
-      letter-spacing: 0.02em;
-    }
+        /* ── Header ── */
+        header {
+            width: 100%;
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0 32px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
 
-    .header-github {
-      display: inline-flex;
-      align-items: center;
-    }
+        .logo {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111;
+            letter-spacing: 0.02em;
+        }
 
-    /* ── Hero ── */
-    .hero {
-      padding: 64px 32px 48px;
-      text-align: center;
-      max-width: 640px;
-    }
+        .header-github {
+            display: inline-flex;
+            align-items: center;
+        }
 
-    .hero h1 {
-      font-size: 28px;
-      font-weight: 700;
-      color: #111;
-      letter-spacing: -0.01em;
-      margin-bottom: 12px;
-    }
+        /* ── Hero ── */
+        .hero {
+            padding: 64px 32px 48px;
+            text-align: center;
+            max-width: 640px;
+        }
 
-    .hero p {
-      font-size: 14px;
-      color: #6b7280;
-      line-height: 1.8;
-      font-family: sans-serif;
-    }
+        .hero h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #111;
+            letter-spacing: -0.01em;
+            margin-bottom: 12px;
+        }
 
-    /* ── Grid ── */
-    .grid {
-      width: 100%;
-      max-width: 880px;
-      padding: 0 32px 64px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 16px;
-    }
+        .hero p {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.8;
+            font-family: sans-serif;
+        }
 
-    /* ── Card base ── */
-    .card {
-      background: #fff;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      text-decoration: none;
-    }
+        /* ── Grid ── */
+        .grid {
+            width: 100%;
+            max-width: 880px;
+            padding: 0 32px 64px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
 
-    a.card {
-      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-      cursor: pointer;
-    }
+        /* ── Card base ── */
+        .card {
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            text-decoration: none;
+        }
 
-    a.card:hover {
-      border-color: #93c5fd;
-      box-shadow: 0 4px 16px rgba(37,99,235,0.08);
-      transform: translateY(-2px);
-    }
+        a.card {
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+            cursor: pointer;
+        }
 
-    .card.disabled {
-      opacity: 0.48;
-      cursor: not-allowed;
-    }
+        a.card:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
+            transform: translateY(-2px);
+        }
 
-    /* ── Card icon ── */
-    .card-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: none;
-    }
+        .card.disabled {
+            opacity: 0.48;
+            cursor: not-allowed;
+        }
 
-    .icon-blue   { background: linear-gradient(135deg, #1e3a8a, #2563eb); }
-    .icon-violet { background: linear-gradient(135deg, #4c1d95, #7c3aed); }
-    .icon-slate  { background: linear-gradient(135deg, #334155, #64748b); }
+        /* ── Card icon ── */
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+        }
 
-    /* ── Card body ── */
-    .card-body { display: flex; flex-direction: column; gap: 5px; }
+        .icon-blue {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+        }
 
-    .card-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: #111;
-      letter-spacing: 0.01em;
-    }
+        .icon-violet {
+            background: linear-gradient(135deg, #4c1d95, #7c3aed);
+        }
 
-    .card-desc {
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.6;
-      font-family: sans-serif;
-    }
+        .icon-slate {
+            background: linear-gradient(135deg, #334155, #64748b);
+        }
 
-    /* ── Tag ── */
-    .card-tag {
-      display: inline-flex;
-      align-items: center;
-      font-size: 10px;
-      font-family: sans-serif;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      border-radius: 20px;
-      width: fit-content;
-    }
+        /* ── Card body ── */
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
 
-    .tag-live    { background: #dcfce7; color: #16a34a; }
-    .tag-soon    { background: #f3f4f6; color: #9ca3af; }
+        .card-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111;
+            letter-spacing: 0.01em;
+        }
 
-    /* ── Support ── */
-    .support {
-      width: 100%;
-      max-width: 880px;
-      padding: 0 32px 64px;
-    }
+        .card-desc {
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.6;
+            font-family: sans-serif;
+        }
 
-    .support-card {
-      background: linear-gradient(180deg, #fffdf8, #ffffff);
-      border: 1.5px solid #f3e8d2;
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 12px 30px rgba(148, 113, 45, 0.08);
-    }
+        /* ── Tag ── */
+        .card-tag {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-family: sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 20px;
+            width: fit-content;
+        }
 
-    .support-title {
-      font-size: 24px;
-      color: #111;
-      margin-bottom: 8px;
-    }
+        .tag-live {
+            background: #dcfce7;
+            color: #16a34a;
+        }
 
-    .support-desc {
-      font-size: 14px;
-      color: #6b7280;
-      line-height: 1.8;
-      font-family: sans-serif;
-      margin-bottom: 24px;
-    }
+        .tag-soon {
+            background: #f3f4f6;
+            color: #9ca3af;
+        }
 
-    .support-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-    }
+        /* ── Support ── */
+        .support {
+            width: 100%;
+            max-width: 880px;
+            padding: 0 32px 64px;
+        }
 
-    .support-item {
-      background: #fff;
-      border: 1px solid #f3eadb;
-      border-radius: 16px;
-      padding: 18px;
-      text-align: center;
-    }
+        .support-card {
+            background: linear-gradient(180deg, #fffdf8, #ffffff);
+            border: 1.5px solid #f3e8d2;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 12px 30px rgba(148, 113, 45, 0.08);
+        }
 
-    .support-item h3 {
-      font-size: 16px;
-      color: #111;
-      margin-bottom: 14px;
-    }
+        .support-title {
+            font-size: 24px;
+            color: #111;
+            margin-bottom: 8px;
+        }
 
-    .support-item img {
-      width: 100%;
-      max-width: 240px;
-      border-radius: 12px;
-      display: block;
-      margin: 0 auto;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-    }
+        .support-desc {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.8;
+            font-family: sans-serif;
+            margin-bottom: 24px;
+        }
 
-    @media (max-width: 640px) {
-      header {
-        padding: 0 20px;
-      }
+        .support-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
 
-      .hero {
-        padding: 48px 20px 36px;
-      }
+        .support-item {
+            background: #fff;
+            border: 1px solid #f3eadb;
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+        }
 
-      .grid,
-      .support {
-        padding-left: 20px;
-        padding-right: 20px;
-      }
+        .support-item h3 {
+            font-size: 16px;
+            color: #111;
+            margin-bottom: 14px;
+        }
 
-      .support-card {
-        padding: 22px;
-      }
-    }
+        .support-item img {
+            width: 100%;
+            max-width: 240px;
+            border-radius: 12px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
 
-    /* ── Footer ── */
-    footer {
-      margin-top: auto;
-      padding: 24px 32px;
-      font-size: 11px;
-      font-family: sans-serif;
-      color: #9ca3af;
-      text-align: center;
-      letter-spacing: 0.04em;
-    }
+        @media (max-width: 640px) {
+            header {
+                padding: 0 20px;
+            }
 
-    footer a { color: #9ca3af; text-decoration: none; }
-    footer a:hover { color: #6b7280; }
-  </style>
+            .hero {
+                padding: 48px 20px 36px;
+            }
+
+            .grid,
+            .support {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .support-card {
+                padding: 22px;
+            }
+        }
+
+        /* ── Footer ── */
+        footer {
+            margin-top: auto;
+            padding: 24px 32px;
+            font-size: 11px;
+            font-family: sans-serif;
+            color: #9ca3af;
+            text-align: center;
+            letter-spacing: 0.04em;
+        }
+
+        footer a {
+            color: #9ca3af;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #6b7280;
+        }
+    </style>
 </head>
 
 <body>
 
-  <header>
+<header>
     <span class="logo">陈书的工具箱</span>
     <div class="header-github">
-      <iframe src="https://ghbtns.com/github-btn.html?user=chensoul&repo=article-tools&type=star&count=true" frameborder="0" scrolling="0" width="90" height="20" title="GitHub"></iframe>
+        <iframe src="https://ghbtns.com/github-btn.html?user=chensoul&repo=article-tools&type=star&count=true"
+                frameborder="0" scrolling="0" width="90" height="20" title="GitHub"></iframe>
     </div>
-  </header>
+</header>
 
-  <section class="hero">
+<section class="hero">
     <h1>小而美的创作工具</h1>
     <p>每一个工具都只做一件事，做好它。</p>
-  </section>
+</section>
 
-  <div class="grid">
+<div class="grid">
 
     <!-- 封面生成器 -->
     <a class="card" href="cover/index.html">
-      <div class="card-icon icon-blue">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="18" height="14" rx="2"/>
-          <path d="M2 13.5l4.5-4.5 3.5 3.5 3.5-4.5 6.5 6.5"/>
-          <line x1="6" y1="20" x2="16" y2="20"/>
-          <line x1="11" y1="17" x2="11" y2="20"/>
-        </svg>
-      </div>
-      <div class="card-body">
-        <span class="card-name">封面生成器</span>
-        <span class="card-desc">快速生成文章封面图，支持多种配色与装饰风格。</span>
-      </div>
-      <span class="card-tag tag-live">已上线</span>
-    </a>
-
-    <!-- 二维码工具 -->
-    <a class="card" href="qrcode/index.html">
-      <div class="card-icon icon-violet">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="2" width="7" height="7" rx="1"/>
-          <rect x="3.5" y="3.5" width="4" height="4" rx="0.5" fill="white" stroke="none"/>
-          <rect x="13" y="2" width="7" height="7" rx="1"/>
-          <rect x="14.5" y="3.5" width="4" height="4" rx="0.5" fill="white" stroke="none"/>
-          <rect x="2" y="13" width="7" height="7" rx="1"/>
-          <rect x="3.5" y="14.5" width="4" height="4" rx="0.5" fill="white" stroke="none"/>
-          <rect x="13" y="13" width="2" height="2" fill="white" stroke="none"/>
-          <rect x="17" y="13" width="2" height="2" fill="white" stroke="none"/>
-          <rect x="13" y="17" width="2" height="2" fill="white" stroke="none"/>
-          <rect x="17" y="17" width="2" height="2" fill="white" stroke="none"/>
-        </svg>
-      </div>
-      <div class="card-body">
-        <span class="card-name">二维码工具</span>
-        <span class="card-desc">生成与解析二维码，支持文本、链接，纯本地处理。</span>
-      </div>
-      <span class="card-tag tag-live">已上线</span>
+        <div class="card-icon icon-blue">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="18" height="14" rx="2"/>
+                <path d="M2 13.5l4.5-4.5 3.5 3.5 3.5-4.5 6.5 6.5"/>
+                <line x1="6" y1="20" x2="16" y2="20"/>
+                <line x1="11" y1="17" x2="11" y2="20"/>
+            </svg>
+        </div>
+        <div class="card-body">
+            <span class="card-name">封面生成器</span>
+            <span class="card-desc">快速生成文章封面图，支持多种配色与装饰风格。</span>
+        </div>
+        <span class="card-tag tag-live">已上线</span>
     </a>
 
     <!-- MD → 微信 -->
     <a class="card" href="editor/index.html">
-      <div class="card-icon icon-slate">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 3h8l4 4v12H5V3z"/>
-          <path d="M13 3v4h4"/>
-          <line x1="8" y1="11" x2="14" y2="11"/>
-          <line x1="8" y1="14" x2="12" y2="14"/>
-        </svg>
-      </div>
-      <div class="card-body">
-        <span class="card-name">MD → 微信排版</span>
-        <span class="card-desc">将 Markdown 转换为微信公众号可用的富文本格式。</span>
-      </div>
-      <span class="card-tag tag-soon">已上线</span>
+        <div class="card-icon icon-slate">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 3h8l4 4v12H5V3z"/>
+                <path d="M13 3v4h4"/>
+                <line x1="8" y1="11" x2="14" y2="11"/>
+                <line x1="8" y1="14" x2="12" y2="14"/>
+            </svg>
+        </div>
+        <div class="card-body">
+            <span class="card-name">Markdown 排版器</span>
+            <span class="card-desc">将 Markdown 文本转换为微信公众号可用的富文本格式。</span>
+        </div>
+        <span class="card-tag tag-live">已上线</span>
     </a>
-  </div>
 
-  <footer>
+    <!-- 二维码工具 -->
+    <a class="card" href="qrcode/index.html">
+        <div class="card-icon icon-violet">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="7" height="7" rx="1"/>
+                <rect x="3.5" y="3.5" width="4" height="4" rx="0.5" fill="white" stroke="none"/>
+                <rect x="13" y="2" width="7" height="7" rx="1"/>
+                <rect x="14.5" y="3.5" width="4" height="4" rx="0.5" fill="white" stroke="none"/>
+                <rect x="2" y="13" width="7" height="7" rx="1"/>
+                <rect x="3.5" y="14.5" width="4" height="4" rx="0.5" fill="white" stroke="none"/>
+                <rect x="13" y="13" width="2" height="2" fill="white" stroke="none"/>
+                <rect x="17" y="13" width="2" height="2" fill="white" stroke="none"/>
+                <rect x="13" y="17" width="2" height="2" fill="white" stroke="none"/>
+                <rect x="17" y="17" width="2" height="2" fill="white" stroke="none"/>
+            </svg>
+        </div>
+        <div class="card-body">
+            <span class="card-name">二维码工具</span>
+            <span class="card-desc">生成与解析二维码，支持文本、链接，纯本地处理。</span>
+        </div>
+        <span class="card-tag tag-live">已上线</span>
+    </a>
+</div>
+
+<footer>
     由 <a href="https://x.com/ichensoul" target="_blank">@chensoul</a> 构建 · 更多工具持续上线中
-  </footer>
-
+</footer>
 
 </body>
 </html>

@@ -568,26 +568,13 @@ const editorApp = createApp({
       // 小红书相关
       previewMode: 'wechat',  // 预览模式：'wechat' 或 'xiaohongshu'
       xiaohongshuImages: [],  // 生成的小红书图片数组
-      xiaohongshuGenerating: false,  // 是否正在生成小红书图片
-      showHistoryPanel: false,      // 侧边栏显示状态
-      drafts: [],                   // 自动保存草稿
-      showDraftPanel: false,        // 草稿侧边栏
-      currentDraftId: null,         // 当前草稿 ID
-      maxDrafts: 10                 // 最多保留 10 篇草稿
+      xiaohongshuGenerating: false  // 是否正在生成小红书图片
     };
   },
 
   async mounted() {
     // 加载用户偏好设置
     this.loadUserPreferences();
-
-    // 加载草稿
-    this.loadDrafts();
-
-    // 如果有当前草稿，优先恢复工作态
-    if (this.currentDraftId) {
-      this.restoreDraft(this.currentDraftId, { silent: true, closePanel: false });
-    }
 
     // 初始化图片存储管理器
     this.imageStore = new ImageStore();
@@ -641,29 +628,18 @@ const editorApp = createApp({
     this.patchMarkdownScanner(md);
     this.md = md;
 
-    // 手动触发一次渲染（确保初始内容显示）
-    this.$nextTick(() => {
-      this.renderMarkdown();
+    // 手动触发一次渲染（确保初始内容显示），再绑定双栏滚动联动
+    this.$nextTick(async () => {
+      await this.renderMarkdown();
+      await this.$nextTick();
+      this.bindScrollSync();
     });
-
-    this._onGlobalKeydown = (e) => {
-      if (e.key !== 'Escape') return;
-      if (this.showHistoryPanel || this.showDraftPanel) {
-        this.closeSidePanels();
-      }
-    };
-    window.addEventListener('keydown', this._onGlobalKeydown);
   },
 
   beforeUnmount() {
+    this.unbindScrollSync();
     if (this._saveTimeout) {
       clearTimeout(this._saveTimeout);
-    }
-    if (this._draftSaveTimeout) {
-      clearTimeout(this._draftSaveTimeout);
-    }
-    if (this._onGlobalKeydown) {
-      window.removeEventListener('keydown', this._onGlobalKeydown);
     }
     if (this._toastTimer) {
       clearTimeout(this._toastTimer);
@@ -672,17 +648,6 @@ const editorApp = createApp({
   },
 
   computed: {
-    currentDraft() {
-      return this.drafts.find(draft => draft.id === this.currentDraftId) || null;
-    },
-
-    currentDraftVersions() {
-      if (!this.currentDraft || !Array.isArray(this.currentDraft.versions)) {
-        return [];
-      }
-      return this.currentDraft.versions;
-    },
-
     orderedStyleEntries() {
       const preferredOrder = [
         'default',
@@ -727,7 +692,6 @@ const editorApp = createApp({
       }
       // 保存样式偏好
       this.saveUserPreferences();
-      this.scheduleDraftAutoSave();
     },
     markdownInput(newVal, oldVal) {
       if (this.md) {
@@ -738,278 +702,62 @@ const editorApp = createApp({
       this._saveTimeout = setTimeout(() => {
         this.saveUserPreferences();
       }, 1000); // 1秒后保存
-
-      this.scheduleDraftAutoSave();
     }
   },
 
   methods: {
-    loadDrafts() {
-      try {
-        const saved = localStorage.getItem('editorDrafts');
-        if (!saved) {
-          this.drafts = [];
-          this.currentDraftId = null;
-          return;
-        }
-
-        const data = JSON.parse(saved);
-        this.drafts = Array.isArray(data?.drafts)
-          ? data.drafts.map(draft => this.normalizeDraft(draft))
-          : [];
-        this.currentDraftId = data?.currentDraftId || null;
-      } catch (error) {
-        console.error('加载草稿失败:', error);
-        this.drafts = [];
-        this.currentDraftId = null;
-      }
-    },
-
-    saveDraftsToStorage() {
-      try {
-        localStorage.setItem('editorDrafts', JSON.stringify({
-          version: 1,
-          currentDraftId: this.currentDraftId,
-          drafts: this.drafts
-        }));
-      } catch (error) {
-        console.error('保存草稿失败:', error);
-      }
-    },
-
-    extractDraftTitle(markdownContent) {
-      return this.extractTitle(markdownContent || '') || '未命名草稿';
-    },
-
-    createDraftVersion({ content, style, title, timestamp }) {
-      return {
-        id: `version-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-        title,
-        content,
-        style,
-        savedAt: timestamp
-      };
-    },
-
-    normalizeDraft(draft) {
-      const normalizedStyle = draft?.style && STYLES[draft.style] ? draft.style : 'default';
-      const title = this.extractDraftTitle(draft?.content || '');
-      const updatedAt = draft?.updatedAt || draft?.createdAt || Date.now();
-      const versions = Array.isArray(draft?.versions) && draft.versions.length > 0
-        ? draft.versions
-            .map(version => ({
-              id: version.id || `version-${version.savedAt || updatedAt}`,
-              title: version.title || title,
-              content: version.content || draft.content || '',
-              style: version.style && STYLES[version.style] ? version.style : normalizedStyle,
-              savedAt: version.savedAt || updatedAt
-            }))
-            .sort((a, b) => b.savedAt - a.savedAt)
-        : [
-            this.createDraftVersion({
-              content: draft?.content || '',
-              style: normalizedStyle,
-              title,
-              timestamp: updatedAt
-            })
-          ];
-
-      return {
-        id: draft?.id || `draft-${updatedAt}`,
-        title,
-        content: draft?.content || '',
-        style: normalizedStyle,
-        createdAt: draft?.createdAt || updatedAt,
-        updatedAt,
-        versions
-      };
-    },
-
     getStyleOptionLabel(styleKey) {
       const style = STYLES[styleKey];
       if (!style) return styleKey;
       return `${style.name}`;
     },
 
-    scheduleDraftAutoSave() {
-      if (this._draftSaveTimeout) {
-        clearTimeout(this._draftSaveTimeout);
-      }
+    /** 左侧 textarea 与右侧预览区按滚动比例双向联动 */
+    bindScrollSync() {
+      this.unbindScrollSync();
+      const ta = this.$refs.editorTextarea;
+      const prev = this.$refs.previewScrollRoot;
+      if (!ta || !prev) return;
 
-      if (!this.markdownInput || !this.markdownInput.trim()) {
-        return;
-      }
-
-      this._draftSaveTimeout = setTimeout(() => {
-        this.saveCurrentDraft({ silent: true });
-      }, 2000);
-    },
-
-    saveCurrentDraft(options = {}) {
-      const { silent = false } = options;
-      const content = this.markdownInput;
-      const versionDedupWindowMs = 60 * 1000;
-
-      if (!content || !content.trim()) {
-        return null;
-      }
-
-      const now = Date.now();
-      const title = this.extractDraftTitle(content);
-      let draftId = this.currentDraftId;
-
-      if (draftId) {
-        const existingIndex = this.drafts.findIndex(draft => draft.id === draftId);
-        if (existingIndex !== -1) {
-          const existingDraft = this.drafts[existingIndex];
-          const lastVersion = Array.isArray(existingDraft.versions) ? existingDraft.versions[0] : null;
-          const hasMeaningfulChange = !lastVersion
-            || lastVersion.content !== content
-            || lastVersion.style !== this.currentStyle;
-          existingDraft.title = title;
-          existingDraft.content = content;
-          existingDraft.style = this.currentStyle;
-          existingDraft.updatedAt = now;
-          if (!Array.isArray(existingDraft.versions)) {
-            existingDraft.versions = [];
-          }
-          if (hasMeaningfulChange) {
-            const nextVersion = this.createDraftVersion({
-              content,
-              style: this.currentStyle,
-              title,
-              timestamp: now
-            });
-            // 1 分钟内仅保留一个历史版本：新的覆盖旧的。
-            existingDraft.versions = existingDraft.versions.filter((version) => {
-              const savedAt = Number(version?.savedAt || 0);
-              return now - savedAt >= versionDedupWindowMs;
-            });
-            existingDraft.versions.unshift(nextVersion);
-            if (existingDraft.versions.length > 20) {
-              existingDraft.versions = existingDraft.versions.slice(0, 20);
-            }
-          }
-          const draft = this.drafts.splice(existingIndex, 1)[0];
-          this.drafts.unshift(draft);
-          this.saveDraftsToStorage();
-          if (!silent) {
-            this.showToast('草稿已保存', 'success');
-          } else if (hasMeaningfulChange) {
-            this.showToast('草稿已自动保存', 'processing', 1600);
-          }
-          return draft.id;
-        }
-      }
-
-      draftId = `draft-${now}-${Math.random().toString(36).slice(2, 8)}`;
-      const draft = {
-        id: draftId,
-        title: title,
-        content: content,
-        style: this.currentStyle,
-        createdAt: now,
-        updatedAt: now,
-        versions: [
-          this.createDraftVersion({
-            content,
-            style: this.currentStyle,
-            title,
-            timestamp: now
-          })
-        ]
+      const applyRatio = (from, to) => {
+        const maxFrom = from.scrollHeight - from.clientHeight;
+        const ratio = maxFrom > 0 ? from.scrollTop / maxFrom : 0;
+        const maxTo = to.scrollHeight - to.clientHeight;
+        to.scrollTop = ratio * Math.max(0, maxTo);
       };
 
-      this.currentDraftId = draftId;
-      this.drafts.unshift(draft);
-      if (this.drafts.length > this.maxDrafts) {
-        this.drafts = this.drafts.slice(0, this.maxDrafts);
-      }
+      const onEditorScroll = () => {
+        if (this._scrollSyncLock) return;
+        this._scrollSyncLock = true;
+        applyRatio(ta, prev);
+        requestAnimationFrame(() => {
+          this._scrollSyncLock = false;
+        });
+      };
 
-      this.saveDraftsToStorage();
-      if (!silent) {
-        this.showToast('草稿已保存', 'success');
-      } else {
-        this.showToast('草稿已自动保存', 'processing', 1600);
-      }
-      return draftId;
+      const onPreviewScroll = () => {
+        if (this._scrollSyncLock) return;
+        this._scrollSyncLock = true;
+        applyRatio(prev, ta);
+        requestAnimationFrame(() => {
+          this._scrollSyncLock = false;
+        });
+      };
+
+      ta.addEventListener('scroll', onEditorScroll, { passive: true });
+      prev.addEventListener('scroll', onPreviewScroll, { passive: true });
+
+      this._scrollSyncCleanup = () => {
+        ta.removeEventListener('scroll', onEditorScroll);
+        prev.removeEventListener('scroll', onPreviewScroll);
+        this._scrollSyncCleanup = null;
+      };
     },
 
-    restoreDraft(draftId, options = {}) {
-      const { silent = false, closePanel = true } = options;
-      const draft = this.drafts.find(item => item.id === draftId);
-      if (!draft) {
-        if (!silent) {
-          this.showToast('草稿不存在', 'error');
-        }
-        return;
+    unbindScrollSync() {
+      if (typeof this._scrollSyncCleanup === 'function') {
+        this._scrollSyncCleanup();
       }
-
-      this.markdownInput = draft.content;
-      if (draft.style && STYLES[draft.style]) {
-        this.currentStyle = draft.style;
-      }
-      this.currentDraftId = draft.id;
-      this.saveDraftsToStorage();
-
-      if (closePanel) {
-        this.showDraftPanel = false;
-      }
-
-      if (!silent) {
-        this.showToast('已恢复草稿', 'success');
-      }
-    },
-
-    deleteDraft(draftId) {
-      const index = this.drafts.findIndex(draft => draft.id === draftId);
-      if (index === -1) {
-        this.showToast('草稿不存在', 'error');
-        return;
-      }
-
-      const isCurrentDraft = this.currentDraftId === draftId;
-      this.drafts.splice(index, 1);
-      if (isCurrentDraft) {
-        this.currentDraftId = null;
-      }
-      this.saveDraftsToStorage();
-      this.showToast('草稿已删除', 'success');
-    },
-
-    createNewDraft() {
-      this.currentDraftId = null;
-      this.markdownInput = '';
-      this.currentStyle = 'default';
-      this.showDraftPanel = false;
-      this.showToast('已新建草稿', 'success');
-    },
-
-    toggleDraftPanel() {
-      this.showDraftPanel = !this.showDraftPanel;
-      if (this.showDraftPanel) {
-        this.showHistoryPanel = false;
-      }
-    },
-
-    closeSidePanels() {
-      this.showDraftPanel = false;
-      this.showHistoryPanel = false;
-    },
-
-    restoreHistoryVersion(versionId) {
-      const version = this.currentDraftVersions.find(item => item.id === versionId);
-      if (!version) {
-        this.showToast('历史版本不存在', 'error');
-        return;
-      }
-
-      this.markdownInput = version.content;
-      if (version.style && STYLES[version.style]) {
-        this.currentStyle = version.style;
-      }
-      this.showHistoryPanel = false;
-      this.showToast('已恢复历史版本', 'success');
     },
 
     // 加载用户偏好设置（样式和内容）
@@ -3199,86 +2947,6 @@ const markdown = \`![图片](img://\${imageId})\`;
       }
 
       this.showToast('批量下载完成', 'success');
-    },
-
-    // ==================== 文章历史记录功能 ====================
-
-    // 从 Markdown 内容提取标题
-    extractTitle(markdownContent) {
-      if (!markdownContent || !markdownContent.trim()) {
-        return '无标题';
-      }
-
-      // 尝试匹配第一个 # 标题
-      const titleMatch = markdownContent.match(/^#\s+(.+)$/m);
-      if (titleMatch && titleMatch[1]) {
-        // 清理标题中的 markdown 格式
-        let title = titleMatch[1].trim();
-        title = title.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '');
-        return title.substring(0, 50); // 最多 50 字符
-      }
-
-      // 如果没有标题，取前 20 个字符
-      const cleanContent = markdownContent
-        .replace(/^!\[.*?\]\(.*?\)$/gm, '') // 移除图片
-        .replace(/^#+\s*/gm, '') // 移除标题标记
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 移除链接格式
-        .replace(/[*_~`]/g, '') // 移除格式标记
-        .trim();
-
-      if (cleanContent) {
-        return cleanContent.substring(0, 20) + (cleanContent.length > 20 ? '...' : '');
-      }
-
-      return '无标题';
-    },
-
-    // 切换历史记录侧边栏
-    toggleHistoryPanel() {
-      if (!this.showHistoryPanel) {
-        this.showDraftPanel = false;
-      }
-      this.showHistoryPanel = !this.showHistoryPanel;
-    },
-
-    // 格式化历史记录时间显示
-    formatHistoryDate(timestamp) {
-      if (!timestamp) return '';
-
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diff = now - date;
-
-      // 不到 1 分钟
-      if (diff < 60 * 1000) {
-        return '刚刚';
-      }
-
-      // 不到 1 小时
-      if (diff < 60 * 60 * 1000) {
-        const minutes = Math.floor(diff / (60 * 1000));
-        return `${minutes} 分钟前`;
-      }
-
-      // 不到 24 小时
-      if (diff < 24 * 60 * 60 * 1000) {
-        const hours = Math.floor(diff / (60 * 60 * 1000));
-        return `${hours} 小时前`;
-      }
-
-      // 今年内
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hour = String(date.getHours()).padStart(2, '0');
-      const minute = String(date.getMinutes()).padStart(2, '0');
-
-      if (year === now.getFullYear()) {
-        return `${month}-${day} ${hour}:${minute}`;
-      }
-
-      // 往年
-      return `${year}-${month}-${day}`;
     }
   }
 });
