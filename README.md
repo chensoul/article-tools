@@ -19,11 +19,6 @@
 - https://github.com/eternityspring/article-tools
 - https://github.com/alchaincyf/huasheng_editor
 
-## 参考
-
-- https://github.com/eternityspring/article-tools
-- https://github.com/alchaincyf/huasheng_editor
-
 ## License
 
 [MIT](LICENSE)
