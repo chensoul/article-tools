@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#eef3fb">
+  <title>Markdown 排版器</title>
+
+  <!-- Google tag (gtag.js)
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FTJSWC1Z5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FTJSWC1Z5');
+  </script> -->
+
+  <!-- Favicon -->
+  <link rel="alternate icon" href="favicon.svg">
+  <link rel="mask-icon" href="favicon.svg" color="#0066FF">
+
+  <!-- Markdown 渲染库 -->
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+
+  <!-- 代码高亮库 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/es/highlight.min.js"></script>
+
+  <!-- Turndown - HTML 转 Markdown 库 -->
+  <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.js"></script>
+
+  <!-- Vue.js -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.15/dist/vue.global.prod.js"></script>
+
+  <!-- html2canvas - 用于生成小红书图片 -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="app.css?v=19">
+</head>
+<body>
+  <div id="app">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <div class="logo">
+        <img class="logo-icon" src="favicon.svg" alt="Logo">
+        <span>Markdown 排版器</span>
+      </div>
+      <div class="header-actions">
+        <a href="https://github.com/chensoul/huasheng_editor"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="github-link"
+           title="查看源码">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 编辑器面板 -->
+      <div class="editor-panel">
+        <div class="editor-header">
+          <div class="editor-actions">
+            <label for="file-upload" class="upload-label upload-label-top">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>上传 MD 文件</span>
+              <input type="file" id="file-upload" accept=".md,.markdown" @change="handleFileUpload" style="display: none;">
+            </label>
+            <button class="toolbar-btn primary" @click="createNewDraft" title="新增草稿">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14m-7-7h14"></path>
+              </svg>
+              <span class="toolbar-btn-text">新增草稿</span>
+            </button>
+            <button class="toolbar-btn draft-btn" @click="toggleDraftPanel" title="草稿">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 6h8M8 10h8M8 14h5M6 3h12a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V5a2 2 0 012-2z"></path>
+              </svg>
+              <span class="draft-btn-text">草稿</span>
+              <span class="toolbar-badge">{{ drafts.length }}</span>
+            </button>
+            <button class="toolbar-btn history-btn" @click="toggleHistoryPanel" title="历史">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="history-btn-text">历史</span>
+              <span class="toolbar-badge">{{ currentDraftVersions.length }}</span>
+            </button>
+          </div>
+        </div>
+        <div class="markdown-input-container">
+          <textarea
+            v-model="markdownInput"
+            class="markdown-input"
+            :class="{ 'drag-over': isDraggingOver }"
+            @paste="handleSmartPaste"
+            @drop="handleDrop"
+            @dragover="handleDragOver"
+            @dragenter="handleDragEnter"
+            @dragleave="handleDragLeave"
+            placeholder="# 在这里粘贴或输入 Markdown 内容
+
+## 功能特点
+
+- **实时预览**：所见即所得
+- **13 种样式**：随意切换
+- **智能粘贴**：支持从飞书、Notion、Word 直接粘贴
+- **图片支持**：直接粘贴或拖拽图片，自动上传
+- **一键复制**：直接粘贴到公众号
+
+💡 提示：可以直接粘贴截图，或拖拽图片文件到这里"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <!-- 编辑器底部工具栏 -->
+        <div class="editor-footer">
+          <div class="char-count">
+            {{ markdownInput.length }} 字符
+          </div>
+        </div>
+      </div>
+
+      <!-- 预览面板 -->
+      <div class="preview-panel">
+        <div class="preview-header">
+          <div class="preview-tools-left">
+            <div class="styles-label">选择样式</div>
+            <select v-model="currentStyle" class="style-select preview-style-select">
+              <option
+                v-for="[key, style] in orderedStyleEntries"
+                :key="key"
+                :value="key"
+              >
+                {{ getStyleOptionLabel(key) }}
+              </option>
+            </select>
+          </div>
+          <div class="preview-actions">
+            <button
+              class="copy-btn copy-btn-x"
+              :disabled="!renderedContent"
+              @click="copyToXArticles"
+            >
+              复制到 X
+            </button>
+            <button
+              class="copy-btn"
+              :disabled="!renderedContent"
+              @click="copyToClipboard"
+            >
+              复制到公众号
+            </button>
+          </div>
+        </div>
+
+        <!-- 公众号预览模式 -->
+        <div class="preview-content">
+          <div v-if="!renderedContent" class="empty-state">
+            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3>开始编辑</h3>
+            <p>左侧输入 Markdown，右侧实时预览</p>
+          </div>
+          <div v-else class="preview-container" v-html="renderedContent"></div>
+        </div>
+
+        <!-- 小红书预览模式（已隐藏） -->
+        <!-- <div v-if="previewMode === 'xiaohongshu'" class="xiaohongshu-preview">
+          <div class="xiaohongshu-controls">
+            <button
+              class="xiaohongshu-btn"
+              :disabled="!renderedContent || xiaohongshuGenerating"
+              @click="generateXiaohongshuImages"
+            >
+              {{ xiaohongshuGenerating ? '生成中...' : '生成小红书图片' }}
+            </button>
+            <button
+              class="xiaohongshu-btn secondary"
+              :disabled="xiaohongshuImages.length === 0"
+              @click="downloadAllXiaohongshuImages"
+            >
+              批量下载 ({{ xiaohongshuImages.length }})
+            </button>
+          </div>
+
+          <div v-if="xiaohongshuGenerating" class="xiaohongshu-loading">
+            <p>正在生成小红书图片，请稍候...</p>
+          </div>
+
+          <div v-else-if="xiaohongshuImages.length === 0" class="xiaohongshu-empty">
+            <p>点击「生成小红书图片」按钮，将内容转换为适合小红书发布的多图</p>
+          </div>
+
+          <div v-else class="xiaohongshu-images-grid">
+            <div
+              v-for="(image, index) in xiaohongshuImages"
+              :key="index"
+              class="xiaohongshu-image-card"
+              @click="downloadXiaohongshuImage(image, index)"
+            >
+              <img :src="image.dataUrl" :alt="`第 ${index + 1} 张`">
+              <div class="xiaohongshu-image-label">
+                第 {{ index + 1 }} / {{ xiaohongshuImages.length }} 张
+              </div>
+            </div>
+          </div>
+        </div> -->
+      </div>
+    </div>
+
+    <!-- 历史记录侧边栏 -->
+    <aside class="history-sidebar" :class="{ open: showHistoryPanel }">
+      <div class="history-header">
+        <div class="history-header-left">
+          <h3>当前草稿历史</h3>
+          <span class="history-count">{{ currentDraftVersions.length }}</span>
+        </div>
+        <button class="history-close-btn" @click="toggleHistoryPanel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="history-list">
+        <div
+          v-for="version in currentDraftVersions"
+          :key="version.id"
+          class="history-item"
+        >
+          <div class="history-item-content">
+            <div class="history-title">{{ version.title }}</div>
+            <div class="history-meta">
+              <span class="history-time">{{ formatHistoryDate(version.savedAt) }}</span>
+              <span class="history-style">{{ STYLES[version.style]?.name || version.style }}</span>
+            </div>
+          </div>
+          <div class="history-actions">
+            <button class="history-action-btn load" @click="restoreHistoryVersion(version.id)" title="恢复">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div v-if="!currentDraft" class="history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>暂无当前草稿</p>
+          <span>先创建或输入内容，系统会自动保存版本</span>
+        </div>
+        <div v-else-if="!currentDraftVersions.length" class="history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>暂无历史版本</p>
+          <span>编辑当前草稿后会自动留下版本</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 草稿侧边栏 -->
+    <aside class="draft-sidebar" :class="{ open: showDraftPanel }">
+      <div class="history-header">
+        <div class="history-header-left">
+          <h3>草稿箱</h3>
+          <span class="history-count">{{ drafts.length }}/{{ maxDrafts }}</span>
+        </div>
+        <button class="history-close-btn" @click="toggleDraftPanel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="history-list">
+        <div
+          v-for="draft in drafts"
+          :key="draft.id"
+          class="history-item"
+          @click="restoreDraft(draft.id)"
+        >
+          <div class="history-item-content">
+            <div class="history-title">
+              {{ draft.title }}
+              <span v-if="draft.id === currentDraftId" class="history-style" style="margin-left: 6px;">当前</span>
+            </div>
+            <div class="history-meta">
+              <span class="history-time">{{ formatHistoryDate(draft.updatedAt) }}</span>
+              <span class="history-style">{{ STYLES[draft.style]?.name || draft.style }}</span>
+            </div>
+          </div>
+          <div class="history-actions">
+            <button class="history-action-btn delete" @click.stop="deleteDraft(draft.id)" title="删除">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div v-if="!drafts.length" class="history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>暂无草稿</p>
+          <span>开始输入后会自动保存最近 10 篇工作草稿</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 侧边栏遮罩层 -->
+    <div class="history-overlay" :class="{ visible: showHistoryPanel || showDraftPanel }" @click="closeSidePanels"></div>
+
+    <!-- Toast 提示 -->
+    <div v-if="toast.show" class="toast" :class="toast.type">
+      {{ toast.message }}
+    </div>
+  </div>
+
+  <!-- 加载脚本 -->
+  <script src="styles.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+</body>
+</html>
