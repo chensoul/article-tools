@@ -583,6 +583,37 @@ body {
   animation: contentFadeIn 260ms ease-out;
 }
 
+/* fenced 代码块：覆盖 highlight.js 主题色，使字色继承自主题 pre（styles.js） */
+.preview-container .md-code-block-body code.hljs,
+.preview-container .md-code-block-body code.hljs span[class] {
+  color: inherit !important;
+  background: transparent !important;
+  font-style: normal !important;
+}
+
+/* hljs 主题 CSS（如 atom-one-dark）会给 .hljs 加 padding，与 body 上 pre 的 padding 叠成上下多一块 */
+.preview-container .md-code-block-body code.hljs,
+.preview-container .md-code-block-body code.md-code-fence {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 引用块内：抵消主题 p 的 margin，使上下内边距视觉一致（避免末段多出一段 margin-bottom） */
+.preview-container blockquote > :first-child {
+  margin-top: 0 !important;
+}
+.preview-container blockquote > :last-child {
+  margin-bottom: 0 !important;
+}
+
+/* 引用块内包含 fenced 代码（含「> ## 标题」+「> ```」整块引用）：blockquote 的左边框与内边距
+   会贯穿标题与代码之间的 margin 区，在代码窗格上下露出灰色竖条；整块去掉引用条即可 */
+.preview-container blockquote:has(.md-code-block) {
+  border-left: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 @keyframes contentFadeIn {
   from {
     opacity: 0;

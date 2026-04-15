@@ -23,7 +23,7 @@
   <!-- html2canvas - 用于生成小红书图片 -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <link rel="stylesheet" href="app.css?v=28">
+  <link rel="stylesheet" href="app.css?v=33">
 </head>
 <body>
   <div id="app">
@@ -52,13 +52,17 @@
         <div class="header-style-tools">
           <span class="header-style-label">样式</span>
           <select v-model="currentStyle" class="header-style-select">
-            <option
-              v-for="[key, style] in orderedStyleEntries"
-              :key="key"
-              :value="key"
-            >
-              {{ getStyleOptionLabel(key) }}
-            </option>
+            <template v-for="grp in orderedStyleOptionGroups" :key="grp.label">
+              <optgroup :label="grp.label">
+                <option
+                  v-for="[key, style] in grp.entries"
+                  :key="key"
+                  :value="key"
+                >
+                  {{ style.name || key }}
+                </option>
+              </optgroup>
+            </template>
           </select>
         </div>
         <div class="header-copy-actions">
@@ -103,7 +107,7 @@
 ## 功能特点
 
 - **实时预览**：所见即所得
-- **13 种样式**：随意切换
+- **多种样式**：随意切换
 - **智能粘贴**：支持从飞书、Notion、Word 直接粘贴
 - **图片支持**：直接粘贴或拖拽图片，自动上传
 - **一键复制**：直接粘贴到公众号
@@ -179,7 +183,7 @@
   </div>
 
   <!-- 加载脚本 -->
-  <script src="styles.js?v=2"></script>
-  <script src="app.js?v=4"></script>
+  <script src="styles.js?v=5"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

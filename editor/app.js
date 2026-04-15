@@ -545,12 +545,61 @@ function withTimeout(promise, ms, message = '操作超时') {
   ]);
 }
 
+/** 有效主题 key（localStorage 或默认值无效时回退） */
+function resolveEditorStyleKey(vm) {
+  const k = vm && vm.currentStyle;
+  if (k && typeof STYLES !== 'undefined' && STYLES[k]) return k;
+  return Object.keys(STYLES)[0];
+}
+
+/** 与 styles.js 中 `group` 字段一致；空则归为「其他」 */
+function normalizeStyleGroupLabel(meta) {
+  const g = meta && meta.group;
+  return g == null || String(g).trim() === '' ? '其他' : String(g).trim();
+}
+
+/** 分组 Tab 顺序 = 在 STYLES 声明顺序中首次出现的 group 顺序 */
+function getStyleGroupOrderFromStyles(styles) {
+  if (!styles || typeof styles !== 'object') return [];
+  const order = [];
+  Object.keys(styles).forEach((key) => {
+    const label = normalizeStyleGroupLabel(styles[key]);
+    if (!order.includes(label)) order.push(label);
+  });
+  return order;
+}
+
+/**
+ * 主题下拉顺序：完全由 styles.js 决定——先按分组首次出现顺序，组内按主题 key 在文件中的声明顺序。
+ */
+function buildOrderedStyleEntries(styles) {
+  if (!styles || typeof styles !== 'object') return [];
+  const keysOrder = Object.keys(styles);
+  const keyIndex = Object.fromEntries(keysOrder.map((k, i) => [k, i]));
+  const groupOrder = getStyleGroupOrderFromStyles(styles);
+  return Object.entries(styles).sort((a, b) => {
+    const ga = normalizeStyleGroupLabel(a[1]);
+    const gb = normalizeStyleGroupLabel(b[1]);
+    const ra = groupOrder.indexOf(ga);
+    const rb = groupOrder.indexOf(gb);
+    if (ra !== rb) return ra - rb;
+    return keyIndex[a[0]] - keyIndex[b[0]];
+  });
+}
+
+function hexToRgbForEditor(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return { r: 100, g: 100, b: 100 };
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
 const editorApp = createApp({
   data() {
     return {
       markdownInput: '',
       renderedContent: '',
-      currentStyle: 'default',
+      currentStyle: typeof STYLES !== 'undefined' ? Object.keys(STYLES)[0] : 'studio-elegant',
       toast: {
         show: false,
         message: '',
@@ -596,16 +645,29 @@ const editorApp = createApp({
     // 初始化 Turndown 服务（HTML 转 Markdown）
     this.initTurndownService();
 
-    // 初始化 markdown-it
+    // 初始化 markdown-it（ fenced 代码块结构需与 applyInlineStyles 中 .md-code-block 一致）
+    const vm = this;
     const md = window.markdownit({
       html: true,
       linkify: true,
       typographer: false,  // 禁用 typographer 以避免智能引号干扰加粗标记
       highlight: function (str, lang) {
-        // macOS 风格的窗口装饰
-        const dots = '<div style="display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: #2a2c33; border-bottom: 1px solid #1e1f24;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56;"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e;"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></span></div>';
+        const sk = resolveEditorStyleKey(vm);
+        const st = STYLES[sk].styles;
+        const codeCss = st.code || '';
+        const codeColorM = /color:\s*(#[0-9a-f]{6})/i.exec(codeCss);
+        const strongColorM = /color:\s*(#[0-9a-f]{6})/i.exec(st.strong || '');
+        const accent = codeColorM ? codeColorM[1] : (strongColorM ? strongColorM[1] : '#666666');
+        const { r, g, b } = hexToRgbForEditor(accent);
+        const headerBg = `rgba(${r},${g},${b},0.14)`;
+        const headerBorder = `rgba(${r},${g},${b},0.28)`;
+        const dots =
+          '<div class="md-code-block-header" style="display:flex;align-items:center;gap:6px;padding:10px 12px;background:' +
+          headerBg +
+          ';border-bottom:1px solid ' +
+          headerBorder +
+          ';"><span style="width:12px;height:12px;border-radius:50%;background:#ff5f56;"></span><span style="width:12px;height:12px;border-radius:50%;background:#ffbd2e;"></span><span style="width:12px;height:12px;border-radius:50%;background:#27c93f;"></span></div>';
 
-        // 检查 hljs 是否加载
         let codeContent = '';
         if (lang && typeof hljs !== 'undefined') {
           try {
@@ -621,7 +683,15 @@ const editorApp = createApp({
           codeContent = md.utils.escapeHtml(str);
         }
 
-        return `<div style="margin: 20px 0; border-radius: 8px; overflow: hidden; background: #383a42; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">${dots}<div style="padding: 16px; overflow-x: auto; background: #383a42;"><code style="display: block; color: #abb2bf; font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace; font-size: 14px; line-height: 1.6; white-space: pre;">${codeContent}</code></div></div>`;
+        return (
+          '<div class="md-code-block">' +
+          '<div class="md-code-block-shell" style="border-radius:0;overflow:hidden;border:none;box-shadow:none;">' +
+          dots +
+          '<div class="md-code-block-body">' +
+          '<code class="hljs md-code-fence">' +
+          codeContent +
+          '</code></div></div></div>'
+        );
       }
     });
 
@@ -648,40 +718,18 @@ const editorApp = createApp({
   },
 
   computed: {
+    /** 扁平列表（与 styles.js 声明顺序一致）；名称 / 分组见各主题的 name、group */
     orderedStyleEntries() {
-      const preferredOrder = [
-        'default',
-        'tech',
-        'deepread',
-        'latepost-depth',
-        'sspai-column',
-        'renwu-profile',
-        'biz-insight',
-        'wechat-nyt',
-        'nikkei',
-        'atlantic-feature',
-        'monocle-brief',
-        'anthropic',
-        'warm-notes'
-      ];
-
-      const seen = new Set();
-      const ordered = [];
-
-      preferredOrder.forEach((key) => {
-        if (STYLES[key]) {
-          ordered.push([key, STYLES[key]]);
-          seen.add(key);
-        }
-      });
-
-      Object.entries(STYLES).forEach(([key, value]) => {
-        if (!seen.has(key)) {
-          ordered.push([key, value]);
-        }
-      });
-
-      return ordered;
+      return buildOrderedStyleEntries(STYLES);
+    },
+    /** 带分组的选项（optgroup 用），分组顺序与组内顺序均来自 styles.js */
+    orderedStyleOptionGroups() {
+      const entries = buildOrderedStyleEntries(STYLES);
+      const groupOrder = getStyleGroupOrderFromStyles(STYLES);
+      return groupOrder.map((label) => ({
+        label,
+        entries: entries.filter(([_, meta]) => normalizeStyleGroupLabel(meta) === label)
+      }));
     }
   },
 
@@ -767,6 +815,8 @@ const editorApp = createApp({
         const savedStyle = localStorage.getItem('currentStyle');
         if (savedStyle && STYLES[savedStyle]) {
           this.currentStyle = savedStyle;
+        } else if (typeof STYLES !== 'undefined' && Object.keys(STYLES).length) {
+          this.currentStyle = Object.keys(STYLES)[0];
         }
 
         // 加载上次的内容
@@ -803,7 +853,7 @@ const editorApp = createApp({
 
 # Markdown 排版器
 
-欢迎使用这款专为**微信公众号**设计的 Markdown 编辑器！✨
+欢迎使用这款专为 \`微信公众号\` 设计的 Markdown 编辑器！✨
 
 ## 🎯 核心功能
 
@@ -858,7 +908,7 @@ const markdown = \`![图片](img://\${imageId})\`;
 |------|---------|------|
 | 图片粘贴 | ✅ | 100% 成功率 |
 | 刷新保留 | ✅ | IndexedDB 存储 |
-| 样式主题 | ✅ | 13 种精选样式 |
+| 样式主题 | ✅ | 多种精选样式 |
 | 代码高亮 | ✅ | 多语言支持 |
 
 ---
@@ -1006,7 +1056,8 @@ const markdown = \`![图片](img://\${imageId})\`;
     },
 
     applyInlineStyles(html) {
-      const style = STYLES[this.currentStyle].styles;
+      const sk = resolveEditorStyleKey(this);
+      const style = STYLES[sk].styles;
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const headingInlineOverrides = {
@@ -1048,6 +1099,59 @@ const markdown = \`![图片](img://\${imageId})\`;
           el.setAttribute('style', currentStyle + '; ' + style[selector]);
         });
       });
+
+      // 引用块内若包含 fenced 代码（如每行带 > 的标题+代码），blockquote 的左边框会贯穿 margin 区，
+      // 在代码窗格上下露出竖条；仅去掉边条与底纹，保留字体等其余 blockquote 样式
+      doc.querySelectorAll('blockquote').forEach((bq) => {
+        if (!bq.querySelector('.md-code-block')) return;
+        let s = bq.getAttribute('style') || '';
+        s = s.replace(/\bborder-left:\s*[^;]+;?/gi, '');
+        s = s.replace(/\bborder-radius:\s*[^;]+;?/gi, '');
+        s = s.replace(/\bbackground(?:-color)?:\s*[^;]+;?/gi, '');
+        s = s.replace(/\bpadding:\s*[^;]+;?/gi, '');
+        s = s.replace(/;\s*;/g, ';').replace(/^\s*;\s*|\s*;\s*$/g, '').trim();
+        bq.setAttribute(
+          'style',
+          s +
+            (s && !s.endsWith(';') ? ';' : '') +
+            ' border-left: none !important; background: transparent !important; padding: 0 !important;'
+        );
+      });
+
+      // fenced 代码块：应用主题 pre（ margin 提到外层 .md-code-block ）
+      const preCss = style.pre || '';
+      const bodyPre = preCss
+        .replace(/margin-top:\s*[^;]+;?/gi, '')
+        .replace(/margin-bottom:\s*[^;]+;?/gi, '');
+      doc.querySelectorAll('.md-code-block-body').forEach((el) => {
+        el.setAttribute('style', bodyPre);
+      });
+      const mt = /margin-top:\s*([^;]+);/i.exec(preCss);
+      const mb = /margin-bottom:\s*([^;]+);/i.exec(preCss);
+      doc.querySelectorAll('.md-code-block').forEach((el) => {
+        const m =
+          mt && mb
+            ? `margin-top:${mt[1].trim()};margin-bottom:${mb[1].trim()};`
+            : 'margin-top:24px;margin-bottom:24px;';
+        el.setAttribute('style', m);
+      });
+      doc.querySelectorAll('.md-code-block-body code').forEach((el) => {
+        el.setAttribute(
+          'style',
+          'display:block;white-space:pre-wrap;word-break:break-all;margin:0 !important;padding:0 !important;border:none;background:transparent;color:inherit;font-family:inherit;font-size:inherit;line-height:inherit;'
+        );
+      });
+
+      // 行内 code（非 fenced、非标题内；标题内 code 由下一步覆盖）
+      const codeCss = style.code || '';
+      if (codeCss) {
+        doc.querySelectorAll('code').forEach((el) => {
+          if (el.closest('.md-code-block')) return;
+          if (el.closest('h1, h2, h3, h4, h5, h6')) return;
+          const cur = el.getAttribute('style') || '';
+          el.setAttribute('style', cur + (cur && !cur.endsWith(';') ? ';' : '') + ' ' + codeCss);
+        });
+      }
 
       // 标题内的行内元素统一继承标题颜色，避免各主题样式冲突
       const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -1446,7 +1550,7 @@ const markdown = \`![图片](img://\${imageId})\`;
         }
 
         // Section 容器包裹
-        const styleConfig = STYLES[this.currentStyle];
+        const styleConfig = STYLES[resolveEditorStyleKey(this)];
         const containerBg = this.extractBackgroundColor(styleConfig.styles.container);
 
         if (containerBg && containerBg !== '#fff' && containerBg !== '#ffffff') {
@@ -1490,40 +1594,25 @@ const markdown = \`![图片](img://\${imageId})\`;
           doc.body.appendChild(section);
         }
 
-        // 代码块简化
-        const codeBlocks = doc.querySelectorAll('div[style*="border-radius: 8px"]');
-        codeBlocks.forEach(block => {
-          const codeElement = block.querySelector('code');
-          if (codeElement) {
-            const codeText = codeElement.textContent || codeElement.innerText;
-            const pre = doc.createElement('pre');
-            const code = doc.createElement('code');
-
-            pre.setAttribute('style',
-              'background: linear-gradient(to bottom, #2a2c33 0%, #383a42 8px, #383a42 100%);' +
-              'padding: 0;' +
-              'border-radius: 6px;' +
-              'overflow: hidden;' +
-              'margin: 24px 0;' +
-              'box-shadow: 0 2px 8px rgba(0,0,0,0.15);'
-            );
-
-            code.setAttribute('style',
-              'color: #abb2bf;' +
-              'font-family: "SF Mono", Consolas, Monaco, "Courier New", monospace;' +
-              'font-size: 14px;' +
-              'line-height: 1.7;' +
-              'display: block;' +
-              'white-space: pre;' +
-              'padding: 16px 20px;' +
-              '-webkit-font-smoothing: antialiased;' +
-              '-moz-osx-font-smoothing: grayscale;'
-            );
-
-            code.textContent = codeText;
-            pre.appendChild(code);
-            block.parentNode.replaceChild(pre, block);
-          }
+        // 代码块：与预览一致，使用当前主题 pre 样式（公众号用单层 pre/code）
+        const codeBlocks = doc.querySelectorAll('.md-code-block');
+        const copyPreStyle = (styleConfig.styles && styleConfig.styles.pre) || '';
+        codeBlocks.forEach((block) => {
+          const codeElement = block.querySelector('.md-code-block-body code') || block.querySelector('code');
+          if (!codeElement) return;
+          const codeText = codeElement.textContent || codeElement.innerText;
+          const pre = doc.createElement('pre');
+          const code = doc.createElement('code');
+          pre.setAttribute('style', copyPreStyle);
+          code.setAttribute(
+            'style',
+            'display:block;white-space:pre-wrap;word-break:break-all;margin:0;padding:0;border:none;' +
+              'background:transparent;color:inherit;font-family:Menlo,Monaco,Consolas,\'Courier New\',monospace;' +
+              'font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;'
+          );
+          code.textContent = codeText;
+          pre.appendChild(code);
+          block.parentNode.replaceChild(pre, block);
         });
 
         // 列表项扁平化
@@ -2908,7 +2997,7 @@ const markdown = \`![图片](img://\${imageId})\`;
 
     // 获取背景色
     getBackgroundColor() {
-      const styleConfig = STYLES[this.currentStyle];
+      const styleConfig = STYLES[resolveEditorStyleKey(this)];
       if (styleConfig && styleConfig.styles && styleConfig.styles.container) {
         const bgColor = this.extractBackgroundColor(styleConfig.styles.container);
         return bgColor || '#FFFFFF';
