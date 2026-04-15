@@ -259,10 +259,15 @@ function parseMD(text){
     const h=l.match(/^(#{1,3})\s+(.+)/);
     if(h){tokens.push({t:"h"+h[1].length,c:h[2].trim()});i++;continue;}
 
-    // 引用
-    if(l.trim().startsWith("> ")){
+    // 引用：支持 > / >  / 多段（空行写为单独一行 >），与 CommonMark 块引用一致
+    if(/^\s*>/.test(l)){
       const q=[];
-      while(i<lines.length&&lines[i].trim().startsWith("> ")){q.push(lines[i].trim().slice(2));i++;}
+      while(i<lines.length){
+        const m=lines[i].match(/^\s*>\s?(.*)$/);
+        if(!m)break;
+        q.push(m[1]);
+        i++;
+      }
       tokens.push({t:"bq",c:q.join("\n")});continue;
     }
 
@@ -316,7 +321,7 @@ function parseMD(text){
     const p=[];
     while(i<lines.length&&lines[i].trim()!==""&&
           !lines[i].trim().startsWith("#")&&
-          !lines[i].trim().startsWith("> ")&&
+          !/^\s*>/.test(lines[i])&&
           !lines[i].trim().startsWith(">>>")&&
           !lines[i].trim().startsWith("```")&&
           !lines[i].trim().startsWith("!!!")&&
@@ -333,13 +338,19 @@ function parseMD(text){
   return tokens;
 }
 
+// 由 render() 在每次渲染前设置：preview=可点链接，export=复制到公众号时改为「文案 url」纯文本
+let inlLinkMode = 'preview';
 function inl(t,s){
   let h=t;
   h=h.replace(/\*\*(.+?)\*\*/g,'<strong style="color:'+s.ac+';font-weight:700">$1</strong>');
   h=h.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g,'<em style="font-style:italic">$1</em>');
   h=h.replace(/==(.+?)==/g,function(_,m){return '<span style="border-bottom:2px solid '+s.ac+';font-weight:600;color:'+s.hd+';padding-bottom:1px">'+m+'</span>';});
   h=h.replace(/`(.+?)`/g,'<code style="background:'+s.al+';color:'+s.ac+';padding:2px 6px;border-radius:3px;font-size:13px">$1</code>');
-  h=h.replace(/\[(.+?)\]\((.+?)\)/g,'<a style="color:'+s.ac+';text-decoration:none;border-bottom:1px solid '+s.ac+'">$1</a>');
+  if(inlLinkMode==='export'){
+    h=h.replace(/\[(.+?)\]\((.+?)\)/g,function(_,text,url){return text+' '+url;});
+  }else{
+    h=h.replace(/\[(.+?)\]\((.+?)\)/g,'<a style="color:'+s.ac+';text-decoration:none;border-bottom:1px solid '+s.ac+'">$1</a>');
+  }
   return h;
 }
 
@@ -364,34 +375,42 @@ const H2={
 // ═══════════════════════════════════════════════
 // 引用块 (沿用 V5)
 // ═══════════════════════════════════════════════
+function bqPs(c,s,pStyle){
+  const parts=c.split(/\n{2,}/).map(function(x){return x.trim();}).filter(Boolean);
+  if(!parts.length)return '';
+  return parts.map(function(part,i){
+    const mt=i>0?';margin-top:0.75em':'';
+    return '<p style="'+pStyle+mt+'">'+inl(part,s)+'</p>';
+  }).join('');
+}
 const BQ={
-  elegant:(c,s)=>'<section style="margin:24px 0;padding:18px 20px 18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'"><p style="color:#666;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  business:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'"><section style="display:flex;gap:10px"><section style="color:'+s.ac+';font-size:28px;font-weight:900;line-height:1;flex-shrink:0;font-family:Georgia,serif;opacity:.4">❝</section><p style="color:#555;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section></section>',
-  warm:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'"><p style="color:#6a5a4a;font-size:14px;line-height:1.8;margin:0;font-style:italic">'+inl(c,s)+'</p></section>',
-  sunrise:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:4px solid '+s.ac+'"><p style="color:#5a4a38;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  tech:(c,s)=>'<section style="margin:24px 0;padding:16px 20px;background:'+s.al+';border-left:3px solid '+s.ac+'"><p style="color:#445;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  chinese:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'"><p style="color:#5a4f44;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  magazine:(c,s)=>'<section style="margin:28px 0;padding:18px 0;border-top:3px solid #000;border-bottom:3px solid #000"><p style="color:'+s.ac+';font-size:15px;font-weight:700;line-height:1.6;margin:0">'+inl(c,s)+'</p></section>',
-  forest:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:4px solid '+s.ac+'"><p style="color:#4a6a55;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  aurora:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+';border-right:3px solid '+(s.sub||"#7c3aed")+'"><p style="color:#475569;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  morandi:(c,s)=>'<section style="margin:28px 0;padding:16px 0;border-top:1px solid '+s.dv+';border-bottom:1px solid '+s.dv+';text-align:center"><p style="color:'+s.mu+';font-size:14px;line-height:1.8;margin:0;font-style:italic">'+inl(c,s)+'</p></section>',
-  mint:(c,s)=>'<section style="margin:24px 0;padding:16px 20px;background:'+s.al+';border-left:4px solid '+s.ac+'"><p style="color:#475569;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
-  neon:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+';border-right:3px solid '+(s.sub||"#8b5cf6")+'"><p style="color:#5a3e6a;font-size:14px;line-height:1.8;margin:0">'+inl(c,s)+'</p></section>',
+  elegant:(c,s)=>'<section style="margin:24px 0;padding:18px 20px 18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'">'+bqPs(c,s,'color:#666;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  business:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'"><section style="display:flex;gap:10px;align-items:flex-start"><section style="color:'+s.ac+';font-size:28px;font-weight:900;line-height:1;flex-shrink:0;font-family:Georgia,serif;opacity:.4">❝</section><section style="flex:1;min-width:0">'+bqPs(c,s,'color:#555;font-size:14px;line-height:1.8;margin:0')+'</section></section></section>',
+  warm:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'">'+bqPs(c,s,'color:#6a5a4a;font-size:14px;line-height:1.8;margin:0;font-style:italic')+'</section>',
+  sunrise:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:4px solid '+s.ac+'">'+bqPs(c,s,'color:#5a4a38;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  tech:(c,s)=>'<section style="margin:24px 0;padding:16px 20px;background:'+s.al+';border-left:3px solid '+s.ac+'">'+bqPs(c,s,'color:#445;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  chinese:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+'">'+bqPs(c,s,'color:#5a4f44;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  magazine:(c,s)=>'<section style="margin:28px 0;padding:18px 0;border-top:3px solid #000;border-bottom:3px solid #000">'+bqPs(c,s,'color:'+s.ac+';font-size:15px;font-weight:700;line-height:1.6;margin:0')+'</section>',
+  forest:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:4px solid '+s.ac+'">'+bqPs(c,s,'color:#4a6a55;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  aurora:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+';border-right:3px solid '+(s.sub||"#7c3aed")+'">'+bqPs(c,s,'color:#475569;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  morandi:(c,s)=>'<section style="margin:28px 0;padding:16px 0;border-top:1px solid '+s.dv+';border-bottom:1px solid '+s.dv+';text-align:center">'+bqPs(c,s,'color:'+s.mu+';font-size:14px;line-height:1.8;margin:0;font-style:italic')+'</section>',
+  mint:(c,s)=>'<section style="margin:24px 0;padding:16px 20px;background:'+s.al+';border-left:4px solid '+s.ac+'">'+bqPs(c,s,'color:#475569;font-size:14px;line-height:1.8;margin:0')+'</section>',
+  neon:(c,s)=>'<section style="margin:24px 0;padding:18px 22px;background:'+s.al+';border-left:3px solid '+s.ac+';border-right:3px solid '+(s.sub||"#8b5cf6")+'">'+bqPs(c,s,'color:#5a3e6a;font-size:14px;line-height:1.8;margin:0')+'</section>',
 };
 
-// 分隔符 (沿用 V5)
+// 分隔符 — 统一为线条，便于在预览与公众号中识别
 const HR={
-  elegant:s=>'<section style="text-align:center;margin:32px 0;color:'+s.ac+';font-size:14px;letter-spacing:12px">· · ·</section>',
-  business:s=>'<section style="margin:36px auto;width:48px;border-top:2px solid '+s.ac+'"></section>',
-  warm:s=>'<section style="text-align:center;margin:36px 0;color:'+s.ac+';font-size:14px;letter-spacing:16px">✦ ✦ ✦</section>',
-  sunrise:s=>'<section style="text-align:center;margin:32px 0;color:'+s.ac+';font-size:14px;letter-spacing:12px">◈ ◈ ◈</section>',
+  elegant:s=>'<section style="margin:32px 0;border-top:1px solid '+s.dv+'"></section>',
+  business:s=>'<section style="margin:36px auto;width:72px;border-top:2px solid '+s.ac+'"></section>',
+  warm:s=>'<section style="margin:36px 0;border-top:1px solid '+s.ac+'66"></section>',
+  sunrise:s=>'<section style="margin:32px 0;border-top:2px solid '+s.ac+'"></section>',
   tech:s=>'<section style="margin:36px 0;border-top:1px dashed '+s.dv+'"></section>',
-  chinese:s=>'<section style="text-align:center;margin:36px 0;color:'+(s.sub||"#8b7355")+';font-size:12px;letter-spacing:12px">◆ ◆ ◆</section>',
-  magazine:s=>'<section style="margin:36px 0;width:48px;border-top:4px solid #000"></section>',
-  forest:s=>'<section style="text-align:center;margin:32px 0;color:'+s.ac+';font-size:14px;letter-spacing:14px">❧ ❧ ❧</section>',
+  chinese:s=>'<section style="margin:36px 0;border-top:1px solid '+(s.sub||"#8b7355")+'55"></section>',
+  magazine:s=>'<section style="margin:36px 0;border-top:3px solid #000"></section>',
+  forest:s=>'<section style="margin:32px 0;border-top:2px solid '+s.ac+'"></section>',
   aurora:s=>'<section style="margin:32px 0;display:flex"><section style="height:2px;background:'+s.ac+';flex:3"></section><section style="height:2px;background:'+(s.sub||"#7c3aed")+';flex:2"></section></section>',
-  morandi:s=>'<section style="text-align:center;margin:32px 0;color:'+s.ac+';font-size:14px;letter-spacing:20px;opacity:.5">— —</section>',
-  mint:s=>'<section style="text-align:center;margin:32px 0;color:'+s.ac+';font-size:12px;letter-spacing:8px">✿ ✿ ✿</section>',
+  morandi:s=>'<section style="margin:32px 0;border-top:1px solid '+s.dv+'"></section>',
+  mint:s=>'<section style="margin:32px 0;border-top:2px solid '+s.ac+'"></section>',
   neon:s=>'<section style="margin:32px 0;display:flex"><section style="height:2px;background:'+s.ac+';flex:1"></section><section style="height:2px;background:'+(s.sub||"#8b5cf6")+';flex:1"></section></section>',
 };
 
@@ -715,18 +734,19 @@ function renderPull(c,s,k){
 
 // 表格
 function renderTable(headers,rows,s,k){
+  const b='1px solid '+s.dv;
   let html='<section style="margin:24px 0;overflow-x:auto">';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:14px">';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:14px;border:'+b+'">';
   html+='<thead><tr>';
   headers.forEach(h=>{
-    html+='<th style="background:'+s.ac+';color:#fff;padding:10px 14px;text-align:left;font-weight:700;font-size:13px">'+inl(h,s)+'</th>';
+    html+='<th style="background:'+s.ac+';color:#fff;padding:10px 14px;text-align:left;font-weight:700;font-size:13px;border:'+b+'">'+inl(h,s)+'</th>';
   });
   html+='</tr></thead><tbody>';
   rows.forEach((row,ri)=>{
     const bg=ri%2===0?s.bg:s.al;
     html+='<tr>';
     row.forEach(cell=>{
-      html+='<td style="padding:10px 14px;background:'+bg+';color:'+s.text+';border-bottom:1px solid '+s.dv+';line-height:1.6">'+inl(cell,s)+'</td>';
+      html+='<td style="padding:10px 14px;background:'+bg+';color:'+s.text+';border:'+b+';line-height:1.6">'+inl(cell,s)+'</td>';
     });
     html+='</tr>';
   });
@@ -766,6 +786,7 @@ function renderCode(c,s,k){
 // mode: "preview" 中控台预览（显示真实图）  "export" 复制时（占位卡槽）
 // ═══════════════════════════════════════════════
 function render(tokens,s,k,mode){
+  inlLinkMode = mode === 'export' ? 'export' : 'preview';
   const bp='color:'+s.text+';font-size:15px;line-height:2;letter-spacing:1px;margin:0 0 20px';
   return tokens.map(function(tok){
     switch(tok.t){
@@ -838,6 +859,24 @@ const DEMO=`# 为什么你应该开始写作
 ## 写作改变认知
 
 当我们把脑海中模糊的想法转化为文字时，思维被迫变得**精确**和**有序**。这个过程本身就是一次深度思考。
+
+### 元素示例：多行引用、行内代码与代码块
+
+行内代码：解析入口是 \`parseMD\`，渲染为 \`render(tokens, s, k, mode)\`；复制到公众号时，\`inlLinkMode === 'export'\` 下链接会变成「文案 url」纯文本。
+
+> 多行引用第一段：同一块内可写多句，**加粗**仍生效。
+>
+> 第二段：中间单独一行只写 \`>\` 表示分段，仍属于同一引用样式。
+
+\`\`\`javascript
+// 围栏代码块（工作室按当前风格套用代码主题）
+function loadDemo(md) {
+  const tokens = parseMD(md);
+  return tokens.map(function (t) {
+    return t.t + ":" + (t.c ? "…" : "");
+  });
+}
+\`\`\`
 
 > 写作是把网状的思考，用树状的结构，体现在线性展开的语句里。
 

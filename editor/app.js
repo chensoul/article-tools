@@ -853,7 +853,7 @@ const editorApp = createApp({
 
 # Markdown 排版器
 
-欢迎使用这款专为 \`微信公众号\` 设计的 Markdown 编辑器！✨
+欢迎使用这款专为 \`微信公众号\` 设计的 Markdown 编辑器：左侧写作、右侧预览，一键复制到公众号后台。✨
 
 ## 🎯 核心功能
 
@@ -861,65 +861,59 @@ const editorApp = createApp({
 
 ![](https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead?w=800&h=500&fit=crop)
 
-- **粘贴即用**：支持从任何地方复制粘贴图片（截图、浏览器、文件管理器）
-- **自动压缩**：图片自动压缩，平均压缩 50%-80%
-- **本地存储**：使用 IndexedDB 持久化，刷新不丢失
-- **编辑流畅**：编辑器中使用短链接，告别卡顿
+- **粘贴即用**：截图、浏览器、本地文件均可粘贴入文
+- **自动压缩**：减小体积，平均约 **50%–80%**
+- **IndexedDB 持久化**：刷新页面内容仍在
+- **短链预览**：编辑区用 \`img://\` 短链，预览再还原为图片
 
-### 2. 多图排版展示
+### 2. 多图网格
 
-支持朋友圈式的多图网格布局，2-3 列自动排版：
+连续插入多张图时，自动 **2–3 列** 网格排版（类似朋友圈多图）：
 
 ![](https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&h=400&fit=crop)
 ![](https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&h=400&fit=crop)
 ![](https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&h=400&fit=crop)
 
-### 3. 13 种精美样式
+### 3. 多主题样式
 
-1. **通用基础**：默认公众号、技术、深度阅读
-2. **国际媒体**：纽约时报、Nikkei、Atlantic、Monocle
-3. **中文内容**：晚点、少数派、人物特稿、商业观察
-4. **品牌表达**：Claude、轻品牌手记
+内置 **经典 / 专业 / 花火计划** 等多组主题，涵盖素雅、科技、国风、极简等方向；切换主题即可预览全文效果。
 
-### 4. 一键复制
+### 4. 复制到公众号
 
-点击「复制到公众号」按钮，直接粘贴到公众号后台，格式完美保留！
-
-## 💻 代码示例
-
-\`\`\`javascript
-// 图片自动压缩并存储到 IndexedDB
-const compressedBlob = await imageCompressor.compress(file);
-await imageStore.saveImage(imageId, compressedBlob);
-
-// 编辑器中插入短链接
-const markdown = \`![图片](img://\${imageId})\`;
-\`\`\`
-
-## 📖 引用样式
-
-> 这是一段引用文字，展示编辑器的引用样式效果。
->
-> 不同的样式主题会有不同的引用样式，试试切换样式看看效果！
-
-## 📊 表格支持
-
-| 功能 | 支持情况 | 说明 |
-|------|---------|------|
-| 图片粘贴 | ✅ | 100% 成功率 |
-| 刷新保留 | ✅ | IndexedDB 存储 |
-| 样式主题 | ✅ | 多种精选样式 |
-| 代码高亮 | ✅ | 多语言支持 |
+点击 **「复制到公众号」**：图片转 Base64、链接在剪贴板中输出为 **「文案 地址」** 纯文本，列表与引用已针对公众号排版做过兼容。
 
 ---
 
-**💡 提示**：
+## 💻 代码块
 
-- 试着切换不同的样式主题，体验各种风格的排版效果
-- 粘贴图片试试智能压缩功能
-- 刷新页面看看内容是否保留
+\`\`\`javascript
+// 图片压缩后写入 IndexedDB，正文里用短链引用
+const compressedBlob = await imageCompressor.compress(file);
+await imageStore.saveImage(imageId, compressedBlob);
+const markdown = \`![说明](img://\${imageId})\`;
+\`\`\`
 
-**🌟 开源项目**：如果觉得有用，欢迎访问 [GitHub 仓库](https://github.com/chensoul/huasheng_editor) 给个 Star！`;
+## 📖 引用
+
+> 第一段引用：左侧 \`>\` 写作，右侧即时预览。
+>
+> 第二段引用：空行写 \`>\` 再写内容，即可在同一块引用里分段。
+
+## 📊 表格（含斑马纹）
+
+| 能力 | 状态 | 说明 |
+|------|:----:|------|
+| 表格边框 | ✅ | 预览与复制均带线框 |
+| 奇偶行底色 | ✅ | 偶数行浅色底，便于扫读 |
+| Markdown 链接 | ✅ | 预览可点；复制为「文案 url」 |
+
+---
+
+**链接示例**（预览可点）：[项目主页](https://github.com/chensoul/article-tools)
+
+**💡 提示**：切换主题看排版差异；粘贴大图试压缩；清空本地存储前可先导出 Markdown。
+
+**🌟 开源**：若觉得有用，欢迎 [在 GitHub 点 Star](https://github.com/chensoul/article-tools)。`;
     },
 
     handleFileUpload(event) {
