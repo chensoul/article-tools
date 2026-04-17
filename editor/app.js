@@ -909,11 +909,11 @@ const markdown = \`![说明](img://\${imageId})\`;
 
 ---
 
-**链接示例**（预览可点）：[项目主页](https://github.com/chensoul/article-tools)
+**链接示例**（预览可点）：[项目主页](https://github.com/zhijunio/article-tools)
 
 **💡 提示**：切换主题看排版差异；粘贴大图试压缩；清空本地存储前可先导出 Markdown。
 
-**🌟 开源**：若觉得有用，欢迎 [在 GitHub 点 Star](https://github.com/chensoul/article-tools)。`;
+**🌟 开源**：若觉得有用，欢迎 [在 GitHub 点 Star](https://github.com/zhijunio/article-tools)。`;
     },
 
     handleFileUpload(event) {

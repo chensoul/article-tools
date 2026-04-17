@@ -1,6 +1,6 @@
 # Changelog
 
-本文件记录 [Article Tools](https://chensoul.github.io/article-tools/) 仓库的主要变更。版本按日期聚合（无单独发版号时以日期为界）。
+本文件记录 [Article Tools](https://zhijunio.github.io/article-tools/) 仓库的主要变更。版本按日期聚合（无单独发版号时以日期为界）。
 
 ## 2026-04-14
 

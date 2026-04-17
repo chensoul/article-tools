@@ -1,6 +1,6 @@
 # Changelog · Markdown 排版器
 
-本文件记录 [`editor/`](https://github.com/chensoul/article-tools/tree/main/editor) 目录下的变更。版本按日期聚合（无单独发版号时以日期为界）。
+本文件记录 [`editor/`](https://github.com/zhijunio/article-tools/tree/main/editor) 目录下的变更。版本按日期聚合（无单独发版号时以日期为界）。
 
 ## 2026-04-14
 
