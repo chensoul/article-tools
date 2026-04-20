@@ -4,13 +4,6 @@
 
 ---
 
-## 2026-04-20
-
-### 文档
-
-- **重写本文件**：与当前源码一致（此前误写为 `app.js`、`Vue` 等，已移除）。
-- **入口命名**：页面与脚本统一为 `index.html`、`index.css`、`index.js`、`index.presets.js`、`index.renderer.js`。
-
 ### 当前实现概要
 
 | 类别 | 说明 |
