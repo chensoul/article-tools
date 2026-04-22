@@ -608,6 +608,12 @@
   }
 
   // ============ 主题切换 ============
+  function syncBoldColorToBrand() {
+    if (state.settings && state.settings.global && state.settings.bold) {
+      state.settings.bold.color = state.settings.global.brand;
+    }
+  }
+
   function applyTheme(key) {
     state.currentThemeKey = key;
     if (key.startsWith('custom:')) {
@@ -618,6 +624,7 @@
     } else if (THEMES[key]) {
       state.settings = JSON.parse(JSON.stringify(THEMES[key]));
     }
+    syncBoldColorToBrand();
     renderPreview();
     buildSettingsPanel();
     updateThemeSelect();
@@ -746,6 +753,7 @@
           };
           state.settings = JSON.parse(JSON.stringify(data.currentSettings));
           state.currentThemeKey = 'custom:' + id;
+          syncBoldColorToBrand();
         }
         save();
         renderPreview();
@@ -831,6 +839,22 @@
     ];
     const matchCount = patterns.filter((pattern) => pattern.test(text)).length;
     return matchCount >= 2 || text.includes('<!-- img:');
+  }
+
+  /** 粘贴场景：纯文本是否已是 Markdown 源码（含短片段，避免再走 HTML→Turndown） */
+  function isLikelyMarkdownSource(text) {
+    if (!text) return false;
+    if (isMarkdown(text)) return true;
+    const t = text.trim();
+    if (t.length < 2) return false;
+    if (/^#{1,6}\s+/m.test(t)) return true;
+    if (/```/.test(t)) return true;
+    if (/^\s*[\*\-\+]\s+/m.test(t)) return true;
+    if (/^\s*\d+\.\s+/m.test(t)) return true;
+    if (/^>\s+/m.test(t)) return true;
+    if (/\[[^\]]+\]\([^)]+\)/.test(t) || /!\[[^\]]*\]\([^)]+\)/.test(t)) return true;
+    if (/^---+$/m.test(t)) return true;
+    return false;
   }
 
   function isIDEFormattedHTML(htmlData, textData) {
@@ -964,11 +988,15 @@
     }
 
     const isFromIDE = isIDEFormattedHTML(htmlData, textData);
-    if (isFromIDE && textData && isMarkdown(textData)) {
+    if (isFromIDE && textData && isLikelyMarkdownSource(textData.trim())) {
       return;
     }
 
     if (htmlData && htmlData.trim() !== '' && turndownService) {
+      if (textData && isLikelyMarkdownSource(textData.trim())) {
+        return;
+      }
+
       const hasPreTag = /<pre[\s>]/.test(htmlData);
       const hasCodeTag = /<code[\s>]/.test(htmlData);
       const isMainlyCode = (hasPreTag || hasCodeTag) && !htmlData.includes('<p') && !htmlData.includes('<div');
@@ -1002,7 +1030,7 @@
         console.error(error);
         if (textData) insertTextAtCursor(event.target, textData);
       }
-    } else if (textData && isMarkdown(textData)) {
+    } else if (textData && isLikelyMarkdownSource(textData.trim())) {
       return;
     }
   }
@@ -1019,6 +1047,7 @@
     ['#0F766E', '#CCFBF1', '#FFFFFF', '#134E4A'], // 青
     ['#9333EA', '#F3E8FF', '#FFFFFF', '#3B0764'], // 亮紫
     ['#DC2626', '#FEE2E2', '#FFFFFF', '#450A0A'], // 中国红
+    ['#CC0000', '#FFEBEE', '#FFFFFF', '#5C0000'], // 标准红
     ['#1A1A1A', '#F0F0F0', '#FFFFFF', '#1A1A1A'], // 黑白
     ['#7A3B2E', '#E8D9C0', '#FFFFFF', '#3A2E1F'], // 复古红棕
     ['#0B3D66', '#DBEAFE', '#FFFFFF', '#0B3D66'], // 深蓝印
@@ -1035,7 +1064,6 @@
     ['h1','h2','h3','h4'].forEach(h => {
       if (state.settings[h]) state.settings[h].color = brand;
     });
-    if (state.settings.p) state.settings.p.color = ink;
     if (state.settings.blockquote) {
       state.settings.blockquote.color = brand;
       state.settings.blockquote.bgColor = brandSoft;
@@ -1049,7 +1077,7 @@
     if (state.settings.a) { state.settings.a.color = brand; state.settings.a.bgColor = brandSoft; }
     if (state.settings.hr) state.settings.hr.color = brand;
     if (state.settings.table) { state.settings.table.color = brand; state.settings.table.bgColor = brandSoft; }
-    if (state.settings.bold) state.settings.bold.color = ink;
+    if (state.settings.bold) state.settings.bold.color = brand;
 
     renderPreview();
     buildSettingsPanel();
@@ -1260,19 +1288,12 @@
     const s = state.settings.global;
 
     box.appendChild(colorField('背景色', s.bg, v => { update('global.bg', v); applyPreviewBg(); }));
-    box.appendChild(colorField('正文墨色', s.ink, v => {
-      state.settings.global.ink = v;
-      // cascade to paragraph + bold + headings (non-brand ones)
-      if (state.settings.p) state.settings.p.color = v;
-      if (state.settings.bold) state.settings.bold.color = v;
-      renderPreview();
-      buildSettingsPanel();
-    }));
     box.appendChild(colorField('主色调', s.brand, v => {
       state.settings.global.brand = v;
       // cascade brand color to all brand-driven fields
       ['h1','h2','h3','h4'].forEach(k => { if (state.settings[k]) state.settings[k].color = v; });
       ['blockquote','code','ul','ol','a','hr','table'].forEach(k => { if (state.settings[k]) state.settings[k].color = v; });
+      if (state.settings.bold) state.settings.bold.color = v;
       renderPreview();
       buildSettingsPanel();
     }));
@@ -1325,19 +1346,25 @@
 
     box.appendChild(presetGrid(
       P.p, s.preset, id => update('p.preset', id),
-      (p) => `<span style="font-size:13px; color:${s.color}">${p.name}</span>`
+      (p) => '<span style="font-size:13px;color:#000">' + p.name + '</span>'
     ));
     box.appendChild(sliderField('字号', 12, 22, 1, s.fontSize, v => update('p.fontSize', v), v => v + 'px'));
     box.appendChild(sliderField('行距', 1.4, 2.2, 0.05, s.lineHeight, v => update('p.lineHeight', v), v => Number(v).toFixed(2)));
     box.appendChild(sliderField('字间距', 0, 2, 0.1, s.letterSpacing, v => update('p.letterSpacing', v), v => Number(v).toFixed(1) + 'px'));
-    box.appendChild(colorField('颜色', s.color, v => update('p.color', v)));
+    const pNote = document.createElement('div');
+    pNote.style.cssText = 'font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.45';
+    pNote.textContent = '正文段落与列表文字固定为黑色（#000），与主题主色无关。';
+    box.appendChild(pNote);
     return box;
   }
 
   // -- 加粗 斜体
   function buildEmphSection() {
     const box = document.createElement('div');
-    box.appendChild(colorField('加粗颜色', state.settings.bold.color, v => update('bold.color', v)));
+    const bNote = document.createElement('div');
+    bNote.style.cssText = 'font-size:11px;color:var(--ink-faint);margin-bottom:12px;line-height:1.45';
+    bNote.textContent = '加粗颜色与「全局样式 → 主色调」一致。';
+    box.appendChild(bNote);
     box.appendChild(colorField('斜体颜色', state.settings.italic.color, v => update('italic.color', v)));
     return box;
   }
@@ -1515,6 +1542,7 @@
     }
 
     load();
+    syncBoldColorToBrand();
     // 如果没有数据或数据无效，使用示例文章（sample.md）
     const hasValidMd = isValidMdContent(state.md);
     if (!hasValidMd) {

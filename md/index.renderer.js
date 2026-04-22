@@ -5,6 +5,8 @@
 
 (function () {
   const P = window.PRESETS;
+  /** 各主题下正文段落、列表文字与容器继承色统一为纯黑（标题/主色装饰不变） */
+  const BODY_TEXT_COLOR = '#000000';
 
   function toCircled(n) {
     const map = ['⓪','①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
@@ -60,7 +62,7 @@
     const preset = find(P.p, cfg.preset);
     const vars = {
       fs: cfg.fontSize,
-      c: cfg.color,
+      c: BODY_TEXT_COLOR,
       lh: cfg.lineHeight,
       ls: cfg.letterSpacing,
     };
@@ -220,19 +222,19 @@
         const cfg = settings.ol;
         const preset = find(P.ol, cfg.preset);
         // 给每个 li 加序号（我们在 listitem 里处理，这里用 data 传递）
-        const containerStyle = `margin:14px 0; padding-left:0; list-style:none; color:${settings.p.color};`;
+        const containerStyle = `margin:14px 0; padding-left:0; list-style:none; color:${BODY_TEXT_COLOR};`;
         return `<ol data-ol-start="${start || 1}" data-ol-preset="${preset.id}" data-ol-color="${cfg.color}" style="${containerStyle}">${body}</ol>`;
       } else {
         const cfg = settings.ul;
         const preset = find(P.ul, cfg.preset);
-        const containerStyle = `margin:14px 0; padding-left:0; list-style:none; color:${settings.p.color};`;
+        const containerStyle = `margin:14px 0; padding-left:0; list-style:none; color:${BODY_TEXT_COLOR};`;
         return `<ul data-ul-marker="${preset.marker}" data-ul-color="${cfg.color}" style="${containerStyle}">${body}</ul>`;
       }
     };
 
     renderer.listitem = function (text) {
       // 使用 flex 布局让序号对齐
-      const itemStyle = `display:flex; gap:8px; align-items:flex-start; margin:6px 0; line-height:${settings.p.lineHeight}; font-size:${settings.p.fontSize}px; color:${settings.p.color};`;
+      const itemStyle = `display:flex; gap:8px; align-items:flex-start; margin:6px 0; line-height:${settings.p.lineHeight}; font-size:${settings.p.fontSize}px; color:${BODY_TEXT_COLOR};`;
       // 嵌套段落去掉外 margin
       const inner = text.replace(/<p style="[^"]*">/g, '<span style="display:inline;">').replace(/<\/p>/g, '</span>');
       return `<li style="${itemStyle}"><!--LI_MARKER_PLACEHOLDER--><span style="flex:1;">${inner}</span></li>`;
@@ -268,7 +270,8 @@
 
     // --- 粗体、斜体、删除线 ---
     renderer.strong = function (text) {
-      return `<strong style="font-weight:700; color:${settings.bold.color};">${text}</strong>`;
+      const brand = settings.global && settings.global.brand ? settings.global.brand : '#000000';
+      return `<strong style="font-weight:700; color:${brand};">${text}</strong>`;
     };
     renderer.em = function (text) {
       return `<em style="font-style:italic; color:${settings.italic.color};">${text}</em>`;
@@ -387,7 +390,7 @@
     const g = settings.global;
     const fontFamily = (P.global.fontFamily.find(f => f.id === g.fontFamily) || P.global.fontFamily[0]).value;
     const mw = (g.maxWidth != null && g.maxWidth !== '') ? `max-width:${g.maxWidth}px;margin:0 auto;` : '';
-    const wrapperStyle = `color:${g.ink}; background:${g.bg || 'transparent'}; font-family:${fontFamily}; font-size:${settings.p.fontSize}px; line-height:${settings.p.lineHeight}; max-width:100%; word-wrap:break-word; overflow-wrap:break-word; padding:0;${mw}`;
+    const wrapperStyle = `color:${BODY_TEXT_COLOR}; background:${g.bg || 'transparent'}; font-family:${fontFamily}; font-size:${settings.p.fontSize}px; line-height:${settings.p.lineHeight}; max-width:100%; word-wrap:break-word; overflow-wrap:break-word; padding:0;${mw}`;
     return `<section style="${wrapperStyle}">${html}</section>`;
   };
 
